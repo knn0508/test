@@ -1,3 +1,4 @@
+---
 - name: Validate backend deployment variables
   ansible.builtin.assert:
     that:
@@ -25,7 +26,7 @@
       - value
       - --output
       - tsv
-  register: backend_sql_password_secret
+  register: backend_deploy_sql_password_secret
   changed_when: false
   no_log: true
 
@@ -44,14 +45,14 @@
       - value
       - --output
       - tsv
-  register: backend_app_insights_secret
+  register: backend_deploy_app_insights_secret
   changed_when: false
   no_log: true
 
 - name: Cache backend secret values
   ansible.builtin.set_fact:
-    backend_sql_password: "{{ backend_sql_password_secret.stdout }}"
-    backend_ai_connection_string: "{{ backend_app_insights_secret.stdout }}"
+    backend_deploy_sql_password: "{{ backend_deploy_sql_password_secret.stdout }}"
+    backend_deploy_ai_connection_string: "{{ backend_deploy_app_insights_secret.stdout }}"
   no_log: true
 
 - name: Pull backend image from ACR
@@ -79,7 +80,7 @@
       DB_PORT: "1433"
       DB_NAME: "{{ sql_database }}"
       DB_USERNAME: "{{ sql_username }}"
-      DB_PASSWORD: "{{ backend_sql_password }}"
+      DB_PASSWORD: "{{ backend_deploy_sql_password }}"
       DB_DRIVER: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
       CORS_ALLOWED_ORIGINS: "{{ cors_allowed_origins }}"
-      APPLICATIONINSIGHTS_CONNECTION_STRING: "{{ backend_ai_connection_string }}"
+      APPLICATIONINSIGHTS_CONNECTION_STRING: "{{ backend_deploy_ai_connection_string }}"

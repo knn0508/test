@@ -1,3 +1,4 @@
+---
 - name: Pull frontend image from ACR
   community.docker.docker_image:
     name: "{{ frontend_image }}"

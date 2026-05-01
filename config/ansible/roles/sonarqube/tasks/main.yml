@@ -1,3 +1,4 @@
+---
 - name: Validate SonarQube variables
   ansible.builtin.assert:
     that:
@@ -20,13 +21,13 @@
       - value
       - --output
       - tsv
-  register: sonar_db_password_secret
+  register: sonarqube_db_password_secret
   changed_when: false
   no_log: true
 
 - name: Cache SonarQube database password
   ansible.builtin.set_fact:
-    sonar_db_password: "{{ sonar_db_password_secret.stdout }}"
+    sonarqube_db_password: "{{ sonarqube_db_password_secret.stdout }}"
   no_log: true
 
 - name: Set vm.max_map_count for Elasticsearch (required by Sonar)
@@ -47,6 +48,7 @@
   ansible.builtin.template:
     src: docker-compose.sonar.yml.j2
     dest: /opt/sonarqube/docker-compose.yml
+    mode: "0644"
 
 - name: Start SonarQube via Docker Compose
   community.docker.docker_compose_v2:

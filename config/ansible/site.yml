@@ -1,3 +1,4 @@
+---
 - name: Build in-memory inventory from Terraform outputs
   hosts: localhost
   connection: local
