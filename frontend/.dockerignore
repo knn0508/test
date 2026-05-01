@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+test-results.json
+test-results.xml
+.git
+.gitignore
+README.md

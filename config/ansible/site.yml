@@ -1,0 +1,92 @@
+- name: Build in-memory inventory from Terraform outputs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    terraform_dir: "{{ playbook_dir }}/../../infra/terraform"
+    ansible_login_user: "{{ lookup('env', 'ANSIBLE_USER') | default('azureuser', true) }}"
+    ansible_login_key_file: "{{ lookup('env', 'ANSIBLE_SSH_PRIVATE_KEY_FILE') | default('~/.ssh/vm_key', true) }}"
+    ansible_use_bastion: "{{ lookup('env', 'ANSIBLE_USE_BASTION') | default('true', true) | bool }}"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+  tasks:
+    - name: Read Terraform outputs
+      ansible.builtin.command:
+        argv:
+          - terraform
+          - "-chdir={{ terraform_dir }}"
+          - output
+          - -json
+      register: terraform_outputs_raw
+      changed_when: false
+
+    - name: Parse Terraform outputs
+      ansible.builtin.set_fact:
+        terraform_outputs: "{{ terraform_outputs_raw.stdout | from_json }}"
+
+    - name: Add managed hosts to the in-memory inventory
+      ansible.builtin.add_host:
+        name: "{{ item.name }}"
+        groups: "{{ item.group }}"
+        ansible_host: "{{ item.ansible_host }}"
+        ansible_user: "{{ ansible_login_user }}"
+        ansible_ssh_private_key_file: "{{ ansible_login_key_file }}"
+        ansible_ssh_common_args: "{{ '-o ProxyJump=' ~ ansible_login_user ~ '@' ~ terraform_outputs.ops_public_ip.value if (item.use_bastion and ansible_use_bastion) else omit }}"
+        acr_name: "{{ terraform_outputs.acr_name.value }}"
+        acr_login_server: "{{ terraform_outputs.acr_login_server.value }}"
+        frontend_port: "80"
+        backend_port: "8080"
+        sonar_port: "9000"
+        acme_challenge_port: "8089"
+        frontend_image: "{{ terraform_outputs.acr_login_server.value }}/frontend:{{ image_tag }}"
+        backend_image: "{{ terraform_outputs.acr_login_server.value }}/backend:{{ image_tag }}"
+        sql_host: "{{ terraform_outputs.sql_server_fqdn.value }}"
+        sql_database: "{{ terraform_outputs.sql_database_name.value }}"
+        sql_username: "{{ terraform_outputs.sql_admin_login.value }}"
+        cors_allowed_origins: "{{ lookup('env', 'BACKEND_CORS_ALLOWED_ORIGINS') | default(terraform_outputs.appgw_frontend_origin.value, true) }}"
+        key_vault_name: "{{ terraform_outputs.key_vault_name.value }}"
+        key_vault_sql_password_secret_name: "sql-admin-password"
+        key_vault_sonar_db_password_secret_name: "sonar-db-password"
+        key_vault_app_insights_secret_name: "applicationinsights-connection-string"
+        gateway_subnet_cidr: "{{ terraform_outputs.gateway_subnet_cidr.value }}"
+        ops_subnet_cidr: "{{ terraform_outputs.ops_subnet_cidr.value }}"
+        admin_cidr: "{{ terraform_outputs.admin_source_cidr.value }}"
+      loop:
+        - name: frontend
+          group: frontend_vms
+          ansible_host: "{{ terraform_outputs.frontend_private_ip.value }}"
+          use_bastion: true
+        - name: backend
+          group: backend_vms
+          ansible_host: "{{ terraform_outputs.backend_private_ip.value }}"
+          use_bastion: true
+        - name: ops
+          group: sonar_vms
+          ansible_host: "{{ terraform_outputs.ops_private_ip.value if not ansible_use_bastion else terraform_outputs.ops_public_ip.value }}"
+          use_bastion: false
+
+- name: Configure and deploy frontend hosts
+  hosts: frontend_vms
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
+    - frontend_deploy
+
+- name: Configure and deploy backend hosts
+  hosts: backend_vms
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
+    - backend_deploy
+
+- name: Configure and deploy the ops host
+  hosts: sonar_vms
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
+    - sonarqube

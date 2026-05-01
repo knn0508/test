@@ -1,0 +1,49 @@
+name: App Gateway Certificate
+
+"on":
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Terraform Infra
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appgw-certificate-main
+  cancel-in-progress: false
+
+jobs:
+  issue-import-enable:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'feat-ci-cd')
+    runs-on:
+      - self-hosted
+      - ops-runner
+      - azure-private
+    env:
+      ARM_USE_AZUREAD: "true"
+      ARM_USE_CLI: "true"
+      TF_VAR_admin_ssh_public_key: ${{ secrets.ADMIN_SSH_PUBLIC_KEY }}
+      TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
+      TF_VAR_sonar_db_password: ${{ secrets.SONAR_DB_PASSWORD }}
+      TF_VAR_admin_source_cidr: ${{ vars.ADMIN_SOURCE_CIDR != '' && vars.ADMIN_SOURCE_CIDR || '0.0.0.0/0' }}
+      TF_VAR_appgw_hostname: ${{ vars.APPGW_HOSTNAME }}
+      TF_VAR_appgw_ssl_certificate_name: "appgw-ssl-cert"
+      LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL != '' && vars.LETSENCRYPT_EMAIL || 'kenan.salmanli05@gmail.com' }}
+      APPGW_CERTIFICATE_NAME: "appgw-ssl-cert"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.9"
+
+      - name: Log in to Azure with the ops runner managed identity
+        run: az login --identity
+
+      - name: Issue or renew the App Gateway certificate and enable HTTPS
+        run: ./scripts/issue_appgw_certificate.sh

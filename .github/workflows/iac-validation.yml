@@ -1,0 +1,71 @@
+name: IaC Validation
+
+"on":
+  pull_request:
+    paths:
+      - ".github/workflows/iac-validation.yml"
+      - ".pre-commit-config.yaml"
+      - ".yamllint.yml"
+      - "config/ansible/**"
+      - "infra/terraform/**"
+  push:
+    branches:
+      - main
+      - feat-ci-cd
+    paths:
+      - ".github/workflows/iac-validation.yml"
+      - ".pre-commit-config.yaml"
+      - ".yamllint.yml"
+      - "config/ansible/**"
+      - "infra/terraform/**"
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize without backend
+        run: terraform init -backend=false
+
+      - name: Validate configuration
+        env:
+          TF_VAR_admin_ssh_public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvalidationonly
+          TF_VAR_sql_admin_password: ValidationOnlyPassword!234
+          TF_VAR_sonar_db_password: ValidationOnlyPassword!234
+        run: terraform validate
+
+  ansible:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lint tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible ansible-lint yamllint
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r config/ansible/requirements.yml
+
+      - name: Lint YAML
+        run: yamllint -c .yamllint.yml config/ansible .github/workflows
+
+      - name: Lint Ansible
+        run: ansible-lint config/ansible

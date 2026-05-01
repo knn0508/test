@@ -1,0 +1,63 @@
+- name: Update apt cache and upgrade packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: safe
+    cache_valid_time: 3600
+
+- name: Install common utilities
+  ansible.builtin.apt:
+    name: [curl, unzip, git, jq, fail2ban, ufw]
+    state: present
+
+- name: Allow SSH to frontend and backend hosts from the ops subnet
+  community.general.ufw:
+    rule: allow
+    src: "{{ ops_subnet_cidr }}"
+    port: "22"
+    proto: tcp
+  when: "'frontend_vms' in group_names or 'backend_vms' in group_names"
+
+- name: Allow SSH to the ops host from the admin network
+  community.general.ufw:
+    rule: allow
+    src: "{{ admin_cidr }}"
+    port: "22"
+    proto: tcp
+  when: "'sonar_vms' in group_names"
+
+- name: Allow frontend traffic from the Application Gateway subnet
+  community.general.ufw:
+    rule: allow
+    src: "{{ gateway_subnet_cidr }}"
+    port: "{{ frontend_port }}"
+    proto: tcp
+  when: "'frontend_vms' in group_names"
+
+- name: Allow backend API traffic from the Application Gateway subnet
+  community.general.ufw:
+    rule: allow
+    src: "{{ gateway_subnet_cidr }}"
+    port: "{{ backend_port }}"
+    proto: tcp
+  when: "'backend_vms' in group_names"
+
+- name: Allow SonarQube access from the admin network
+  community.general.ufw:
+    rule: allow
+    src: "{{ admin_cidr }}"
+    port: "{{ sonar_port }}"
+    proto: tcp
+  when: "'sonar_vms' in group_names"
+
+- name: Allow ACME challenge traffic from the Application Gateway subnet to the ops host
+  community.general.ufw:
+    rule: allow
+    src: "{{ gateway_subnet_cidr }}"
+    port: "{{ acme_challenge_port }}"
+    proto: tcp
+  when: "'sonar_vms' in group_names"
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    policy: deny

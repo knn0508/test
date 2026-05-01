@@ -1,0 +1,54 @@
+- name: Validate SonarQube variables
+  ansible.builtin.assert:
+    that:
+      - key_vault_name | length > 0
+      - key_vault_sonar_db_password_secret_name | length > 0
+    fail_msg: "Terraform outputs and Key Vault secret names must be available before deploying SonarQube."
+
+- name: Read SonarQube database password from Key Vault
+  ansible.builtin.command:
+    argv:
+      - az
+      - keyvault
+      - secret
+      - show
+      - --vault-name
+      - "{{ key_vault_name }}"
+      - --name
+      - "{{ key_vault_sonar_db_password_secret_name }}"
+      - --query
+      - value
+      - --output
+      - tsv
+  register: sonar_db_password_secret
+  changed_when: false
+  no_log: true
+
+- name: Cache SonarQube database password
+  ansible.builtin.set_fact:
+    sonar_db_password: "{{ sonar_db_password_secret.stdout }}"
+  no_log: true
+
+- name: Set vm.max_map_count for Elasticsearch (required by Sonar)
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Create sonarqube directory
+  ansible.builtin.file:
+    path: /opt/sonarqube
+    state: directory
+    mode: "0755"
+
+- name: Copy docker-compose for SonarQube
+  ansible.builtin.template:
+    src: docker-compose.sonar.yml.j2
+    dest: /opt/sonarqube/docker-compose.yml
+
+- name: Start SonarQube via Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: /opt/sonarqube
+    state: present

@@ -1,0 +1,10 @@
+extends: default
+
+rules:
+  line-length:
+    level: warning
+    max: 200
+  truthy:
+    allowed-values:
+      - "true"
+      - "false"

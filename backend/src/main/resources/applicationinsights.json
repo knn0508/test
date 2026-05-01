@@ -1,0 +1,6 @@
+{
+  "connectionStringConfiguredAtRuntime": true,
+  "role": {
+    "name": "burger-builder-backend"
+  }
+}
