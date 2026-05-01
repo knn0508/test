@@ -4,11 +4,11 @@ variable "suffix" {}
 variable "tenant_id" {}
 variable "deployer_object_id" {}
 variable "secret_reader_principal_ids" {
-  type = list(string)
+  type = map(string)
 }
 variable "certificate_manager_principal_ids" {
-  type    = list(string)
-  default = []
+  type    = map(string)
+  default = {}
 }
 variable "sql_admin_password" {
   sensitive = true

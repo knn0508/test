@@ -48,17 +48,23 @@ resource "azurerm_user_assigned_identity" "appgateway" {
 }
 
 module "keyvault" {
-  source                            = "./modules/keyvault"
-  rg_name                           = azurerm_resource_group.main.name
-  location                          = var.location
-  suffix                            = local.suffix
-  tenant_id                         = data.azurerm_client_config.current.tenant_id
-  deployer_object_id                = data.azurerm_client_config.current.object_id
-  secret_reader_principal_ids       = [module.vm.backend_principal_id, module.vm.ops_principal_id, azurerm_user_assigned_identity.appgateway.principal_id]
-  certificate_manager_principal_ids = [module.vm.ops_principal_id]
-  sql_admin_password                = var.sql_admin_password
-  sonar_db_password                 = var.sonar_db_password
-  app_insights_connection_string    = module.monitoring.app_insights_connection_string
+  source             = "./modules/keyvault"
+  rg_name            = azurerm_resource_group.main.name
+  location           = var.location
+  suffix             = local.suffix
+  tenant_id          = data.azurerm_client_config.current.tenant_id
+  deployer_object_id = data.azurerm_client_config.current.object_id
+  secret_reader_principal_ids = {
+    backend    = module.vm.backend_principal_id
+    ops        = module.vm.ops_principal_id
+    appgateway = azurerm_user_assigned_identity.appgateway.principal_id
+  }
+  certificate_manager_principal_ids = {
+    ops = module.vm.ops_principal_id
+  }
+  sql_admin_password             = var.sql_admin_password
+  sonar_db_password              = var.sonar_db_password
+  app_insights_connection_string = module.monitoring.app_insights_connection_string
 }
 
 resource "azurerm_container_registry" "main" {

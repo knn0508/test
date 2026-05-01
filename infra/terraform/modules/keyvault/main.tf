@@ -29,7 +29,7 @@ resource "azurerm_key_vault_access_policy" "deployer" {
 }
 
 resource "azurerm_key_vault_access_policy" "secret_readers" {
-  for_each = toset(var.secret_reader_principal_ids)
+  for_each = var.secret_reader_principal_ids
 
   key_vault_id = azurerm_key_vault.main.id
   tenant_id    = var.tenant_id
@@ -42,7 +42,7 @@ resource "azurerm_key_vault_access_policy" "secret_readers" {
 }
 
 resource "azurerm_key_vault_access_policy" "certificate_managers" {
-  for_each = toset(var.certificate_manager_principal_ids)
+  for_each = var.certificate_manager_principal_ids
 
   key_vault_id = azurerm_key_vault.main.id
   tenant_id    = var.tenant_id
