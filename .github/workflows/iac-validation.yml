@@ -1,4 +1,4 @@
-name: IaC Validation
+name: IaC Validation V2
 
 "on":
   pull_request:
