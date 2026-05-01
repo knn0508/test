@@ -94,16 +94,16 @@ resource "azurerm_role_assignment" "ops_acr_push" {
 }
 
 module "appgateway" {
-  source                          = "./modules/appgateway"
-  rg_name                         = azurerm_resource_group.main.name
-  location                        = var.location
-  suffix                          = local.suffix
-  gateway_subnet_id               = module.networking.gateway_subnet_id
-  frontend_private_ip             = module.vm.frontend_private_ip
-  backend_private_ip              = module.vm.backend_private_ip
-  ops_private_ip                  = module.vm.ops_private_ip
-  user_assigned_identity_id       = azurerm_user_assigned_identity.appgateway.id
-  enable_https                    = var.appgw_enable_https
-  ssl_certificate_secret_id       = trimspace(var.appgw_ssl_certificate_secret_id) != "" ? trimspace(var.appgw_ssl_certificate_secret_id) : "${module.keyvault.key_vault_uri}secrets/${var.appgw_ssl_certificate_name}/"
-  frontend_hostname               = var.appgw_hostname
+  source                    = "./modules/appgateway"
+  rg_name                   = azurerm_resource_group.main.name
+  location                  = var.location
+  suffix                    = local.suffix
+  gateway_subnet_id         = module.networking.gateway_subnet_id
+  frontend_private_ip       = module.vm.frontend_private_ip
+  backend_private_ip        = module.vm.backend_private_ip
+  ops_private_ip            = module.vm.ops_private_ip
+  user_assigned_identity_id = azurerm_user_assigned_identity.appgateway.id
+  enable_https              = var.appgw_enable_https
+  ssl_certificate_secret_id = trimspace(var.appgw_ssl_certificate_secret_id) != "" ? trimspace(var.appgw_ssl_certificate_secret_id) : "${module.keyvault.key_vault_uri}secrets/${var.appgw_ssl_certificate_name}/"
+  frontend_hostname         = var.appgw_hostname
 }

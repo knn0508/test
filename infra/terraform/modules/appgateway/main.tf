@@ -163,7 +163,7 @@ resource "azurerm_application_gateway" "main" {
         url_path_map_name           = "url-path-map"
         priority                    = 100
       }
-    } : {
+      } : {
       http_route = {
         name                        = "rule-frontend"
         rule_type                   = "PathBasedRouting"
