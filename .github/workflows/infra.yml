@@ -1,3 +1,4 @@
+---
 name: Terraform Infra
 
 "on":
@@ -50,7 +51,7 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        
+
       - name: Check Azure OIDC variables
         run: |
           test -n "${{ vars.ARM_CLIENT_ID || secrets.ARM_CLIENT_ID }}" || (echo "ARM_CLIENT_ID is missing" && exit 1)
