@@ -47,6 +47,13 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        
+      - name: Check Azure OIDC variables
+        run: |
+          test -n "${{ vars.ARM_CLIENT_ID || secrets.ARM_CLIENT_ID }}" || (echo "ARM_CLIENT_ID is missing" && exit 1)
+          test -n "${{ vars.ARM_TENANT_ID || secrets.ARM_TENANT_ID }}" || (echo "ARM_TENANT_ID is missing" && exit 1)
+          test -n "${{ vars.ARM_SUBSCRIPTION_ID || secrets.ARM_SUBSCRIPTION_ID }}" || (echo "ARM_SUBSCRIPTION_ID is missing" && exit 1)
+          echo "Azure OIDC variables are present"
 
       - name: Log in to Azure with OIDC
         uses: azure/login@v2
