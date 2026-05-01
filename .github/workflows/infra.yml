@@ -26,6 +26,9 @@ env:
   ARM_USE_OIDC: "true"
   ARM_USE_AZUREAD: "true"
   APPGW_CERTIFICATE_NAME: "appgw-ssl-cert"
+  TF_STATE_STORAGE_ACCOUNT: "tfstateproject2g6"
+  TF_STATE_CONTAINER: "tfstate"
+  TF_STATE_BLOB_KEY: "terraform.tfstate"
   ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID != '' && vars.ARM_CLIENT_ID || secrets.ARM_CLIENT_ID }}
   ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID != '' && vars.ARM_TENANT_ID || secrets.ARM_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID != '' && vars.ARM_SUBSCRIPTION_ID || secrets.ARM_SUBSCRIPTION_ID }}
@@ -67,6 +70,10 @@ jobs:
         with:
           terraform_version: "1.14.9"
 
+      - name: Check remote state lock
+        working-directory: .
+        run: bash ./scripts/check_terraform_state_lock.sh
+
       - name: Check formatting
         run: terraform fmt -check -recursive
 
@@ -86,7 +93,7 @@ jobs:
         run: terraform validate
 
       - name: Create Terraform plan
-        run: terraform plan -input=false -out=tfplan
+        run: terraform plan -input=false -lock-timeout=300s -out=tfplan
 
       - name: Upload Terraform plan artifact
         if: github.ref == 'refs/heads/main'
@@ -121,6 +128,10 @@ jobs:
         with:
           terraform_version: "1.14.9"
 
+      - name: Check remote state lock
+        working-directory: .
+        run: bash ./scripts/check_terraform_state_lock.sh
+
       - name: Download Terraform plan artifact
         uses: actions/download-artifact@v4
         with:
@@ -140,4 +151,4 @@ jobs:
           fi
 
       - name: Apply Terraform plan
-        run: terraform apply -input=false -auto-approve tfplan
+        run: terraform apply -input=false -lock-timeout=300s -auto-approve tfplan
