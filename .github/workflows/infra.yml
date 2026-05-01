@@ -92,6 +92,10 @@ jobs:
       - name: Validate Terraform
         run: terraform validate
 
+      - name: Check remote state lock before plan
+        working-directory: .
+        run: bash ./scripts/check_terraform_state_lock.sh
+
       - name: Create Terraform plan
         run: terraform plan -input=false -lock-timeout=300s -out=tfplan
 
@@ -149,6 +153,10 @@ jobs:
           else
             echo "TF_VAR_appgw_enable_https=false" >> "$GITHUB_ENV"
           fi
+
+      - name: Check remote state lock before apply
+        working-directory: .
+        run: bash ./scripts/check_terraform_state_lock.sh
 
       - name: Apply Terraform plan
         run: terraform apply -input=false -lock-timeout=300s -auto-approve tfplan

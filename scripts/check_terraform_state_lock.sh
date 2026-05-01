@@ -39,11 +39,11 @@ blob_json="$(
 )"
 
 readarray -t lease_info < <(
-  python3 - <<'PY' <<<"${blob_json}"
+  BLOB_JSON="${blob_json}" python3 - <<'PY'
 import json
-import sys
+import os
 
-data = json.load(sys.stdin)
+data = json.loads(os.environ["BLOB_JSON"])
 props = data.get("properties") or {}
 lease = props.get("lease") or {}
 
